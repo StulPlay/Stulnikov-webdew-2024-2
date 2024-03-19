@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>{{ post.title }}</h1>
+
+<div>
+    Опубликовано {{ post.date.strftime('%d.%m.%Y') }}.
+    Автор: {{ post.author }}
+</div>
+<div>
+    <img class="card-img-top" src="{{ url_for('static', filename='images/' + post.image_id) }}" alt="Card image cap">
+</div>
+<div>
+    {{ post.text }}
+</div>
+<form>
+    <div class="mb-3">
+      <label for="exampleFormControlTextarea1" class="form-label">Оставьте отзыв</label>
+      <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary mb-3">Отправить</button>
+    </div>
+</form>
+<div>
+    <h2>Отзывы:</h2>
+    {% for comment in post.comments %}
+    <div class="p-1 m-1 border">
+        <h3>{{ comment.author }}</h3>
+        <p>{{ comment.text }}</p>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
