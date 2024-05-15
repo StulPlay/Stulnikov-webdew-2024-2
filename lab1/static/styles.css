@@ -5,7 +5,3 @@ body {
 .avatar {
     max-width: 100%;
 }
-
-main {
-    min-height: 100vh;
-}
