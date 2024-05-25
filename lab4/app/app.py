@@ -26,7 +26,7 @@ def get_roles():
     return roles
 
 class User(UserMixin):
-    def __init__(self,user_id,user_login):
+    def __init__(self, user_id, user_login):
         self.id = user_id
         self.login = user_login
         
@@ -89,6 +89,9 @@ def create_user():
         'password': '',
         'role_id': ''
     }
+
+    filtered_errors = {}
+
     if request.method == "POST":
         first_name = request.form.get('name')
         second_name = request.form.get('lastname')
@@ -106,35 +109,69 @@ def create_user():
             'role_id': request.form.get('role')
         }
 
+        error_first = False
+        error_password = False
+        error_second = False
+        error_login = False
+        error_password_1 = False
+        error_password_2 = False
+        error_password_3 = False
+        error_password_4 = False
+        error_password_5 = False
 
-        if not (first_name and second_name and login and password):
-            flash('Поля имя, фамилия, логин и пароль не могут быть пустыми', 'danger')
-            return render_template('create_user.html', user_create_data=user_create_data, roles=get_roles())
+
+
+        if not (first_name):
+            error_first = 'Поле имя не может быть пустым'
+
+        if not (password):
+            error_password = 'Поле пароль не может быть пустым'
+
+        if not (second_name):
+            error_second = 'Поле фамилия не может быть пустым'
+
+        if not (login):
+            error_login = 'поле логин не может быть пустым'
 
         if len(login) < 5 or not re.match(r'^[a-zA-Z0-9]+$', login):
-            flash('Логин должен состоять только из латинских букв и цифр и иметь длину не менее 5 символов', 'danger')
-            return render_template('create_user.html', user_create_data=user_create_data, roles=get_roles())
+            error_login = 'Логин должен состоять только из латинских букв и цифр и иметь длину не менее 5 символов'
 
         if not (8 <= len(password) <= 128):
-            flash('Пароль должен содержать от 8 до 128 символов', 'danger')
-            return render_template('create_user.html', user_create_data=user_create_data, roles=get_roles())
+            error_password_1 = 'Пароль должен содержать от 8 до 128 символов'
 
-        if not re.match(r'^[a-zA-Z0-9~!?@#$%^&*(){}\[\]<>\\/|"\'.,:;+-_]*$', password):
-            flash(
-                'Пароль должен состоять только из латинских букв, цифр и символов: ~ ! ? @ # $ % ^ & * ( ) { } [ ] < > / \ | " \' . , : ; + - _','danger')
-            return render_template('create_user.html', user_create_data=user_create_data, roles=get_roles())
+        if not re.match(r'^[a-zA-Zа-яА-Я0-9~!?@#$%^&*(){}\[\]<>\\/|"\'.,:;+-_]*$', password):
+            error_password_2 = 'Пароль должен состоять только из латинских и кирилических букв, цифр и символов: ~ ! ? @ # $ % ^ & * ( ) { } [ ] < > / \ | " \' . , : ; + - _'
 
         if not re.search(r'[a-z]', password):
-            flash('Пароль должен содержать как минимум одну строчную букву', 'danger')
-            return render_template('create_user.html', user_create_data=user_create_data, roles=get_roles())
+            error_password_3 = 'Пароль должен содержать как минимум одну строчную букву'
 
         if not re.search(r'[A-Z]', password):
-            flash('Пароль должен содержать как минимум одну заглавную букву', 'danger')
-            return render_template('create_user.html', user_create_data=user_create_data, roles=get_roles())
+            error_password_4 = 'Пароль должен содержать как минимум одну заглавную букву'
 
         if not re.search(r'\d', password):
-            flash('Пароль должен содержать как минимум одну цифру', 'danger')
-            return render_template('create_user.html', user_create_data=user_create_data, roles=get_roles())
+            error_password_5 = 'Пароль должен содержать как минимум одну цифру'
+
+        errors = {
+            'error_first': error_first,
+            'error_password': error_password,
+            'error_second': error_second,
+            'error_login': error_login,
+            'error_password_1': error_password_1,
+            'error_password_2': error_password_2,
+            'error_password_3': error_password_3,
+            'error_password_4': error_password_4,
+            'error_password_5': error_password_5
+        }
+
+        # Фильтруем ошибки, которые не равны False
+        filtered_errors = {name: error for name, error in errors.items() if error != False}
+
+        # Если есть хотя бы одна ошибка
+        if filtered_errors:
+            print(filtered_errors)
+            return render_template('create_user.html', user_create_data=user_create_data, roles=get_roles(), filtered_errors=filtered_errors)
+
+
 
         try:
             cursor = db.connect().cursor(named_tuple=True)
@@ -148,7 +185,7 @@ def create_user():
             flash('Ошибка при регистрации', 'danger')
 
     roles = get_roles()
-    return render_template('create_user.html',user_create_data = user_create_data, roles = roles)
+    return render_template('create_user.html',user_create_data = user_create_data, roles = roles, filtered_errors=filtered_errors)
 
 @app.route('/show_user/<int:user_id>')
 @login_required
@@ -164,6 +201,8 @@ def show_user(user_id):
 @app.route('/edit_user/<int:user_id>', methods=['GET','POST'])
 @login_required
 def edit_user(user_id):
+    filtered_errors = {}
+
     cursor = db.connect().cursor(named_tuple=True)
     query = ('SELECT users.*, roles.name as role_name FROM users LEFT JOIN roles ON users.role_id = roles.id WHERE users.id = %s')
     cursor.execute(query, (user_id,))
@@ -184,7 +223,7 @@ def edit_user(user_id):
         except mysql.connector.errors.DatabaseError:
             db.connect().rollback()
             flash('Ошибка при обновлении', 'danger')
-    return render_template('edit_user.html', user = user)
+    return render_template('edit_user.html', user = user, filtered_errors=filtered_errors)
 
 @app.route('/delete_users/<int:user_id>', methods=['GET','POST'])
 @login_required
@@ -210,33 +249,50 @@ def changing_password():
         new_password = request.form.get('new_password')
         password = request.form.get('password')
 
-        if not (old_password and new_password and password):
-            flash('Поля имя, фамилия, логин и пароль не могут быть пустыми', 'danger')
-            return render_template('changing_password.html', roles=get_roles())
+        filtered_errors = {}
+
+        error_password = False
+        error_password_1 = False
+        error_password_2 = False
+        error_password_3 = False
+        error_password_4 = False
+        error_password_5 = False
 
         if not (new_password == password):
-            flash('Новые пароли должены совпадать', 'danger')
-            return render_template('changing_password.html', roles=get_roles())
+            error_password = 'Новые пароли должны совпадать'
 
-        if not (8 <= len(password) <= 128):
-            flash('Пароль должен содержать от 8 до 128 символов', 'danger')
-            return render_template('changing_password.html', roles=get_roles())
+        if not (8 <= len(new_password) <= 128):
+            error_password_1 = 'Пароль должен содержать от 8 до 128 символов'
 
-        if not re.match(r'^[a-zA-Z0-9~!?@#$%^&*(){}\[\]<>\\/|"\'.,:;+-_]*$', password):
-            flash('Пароль должен состоять только из латинских букв, цифр и символов: ~ ! ? @ # $ % ^ & * ( ) { } [ ] < > / \ | " \' . , : ; + - _','danger')
-            return render_template('changing_password.html', roles=get_roles())
+        if not re.match(r'^[a-zA-Zа-яА-Я0-9~!?@#$%^&*(){}\[\]<>\\/|"\'.,:;+-_]*$', new_password):
+            error_password_2 = 'Пароль должен состоять только из латинских и кирилических букв, цифр и символов: ~ ! ? @ # $ % ^ & * ( ) { } [ ] < > / \ | " \' . , : ; + - _'
 
-        if not re.search(r'[a-z]', password):
-            flash('Пароль должен содержать как минимум одну строчную букву', 'danger')
-            return render_template('changing_password.html', roles=get_roles())
+        if not re.search(r'[a-z]', new_password):
+            error_password_3 = 'Пароль должен содержать как минимум одну строчную букву'
 
-        if not re.search(r'[A-Z]', password):
-            flash('Пароль должен содержать как минимум одну заглавную букву', 'danger')
-            return render_template('changing_password.html', roles=get_roles())
+        if not re.search(r'[A-Z]', new_password):
+            error_password_4 = 'Пароль должен содержать как минимум одну заглавную букву'
 
-        if not re.search(r'\d', password):
-            flash('Пароль должен содержать как минимум одну цифру', 'danger')
-            return render_template('changing_password.html', roles=get_roles())
+        if not re.search(r'\d', new_password):
+            error_password_5 = 'Пароль должен содержать как минимум одну цифру'
+
+
+        errors = {
+            'error_password': error_password,
+            'error_password_1': error_password_1,
+            'error_password_2': error_password_2,
+            'error_password_3': error_password_3,
+            'error_password_4': error_password_4,
+            'error_password_5': error_password_5
+        }
+
+        # Фильтруем ошибки, которые не равны False
+        filtered_errors = {name: error for name, error in errors.items() if error != False}
+
+        # Если есть хотя бы одна ошибка
+        if filtered_errors:
+            print(filtered_errors)
+            return render_template('changing_password.html', roles=get_roles(), filtered_errors=filtered_errors)
 
         try:
             cursor = db.connect().cursor(named_tuple=True)

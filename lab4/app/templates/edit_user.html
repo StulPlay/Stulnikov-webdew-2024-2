@@ -4,6 +4,6 @@
 <h1 class='mb-3'>Редактирование пользователя</h1>
 {% from 'form.html' import form %}
 
-{{ form(user, '', '')}}
+{{ form(user, '', '', filtered_errors)}}
 
 {% endblock %}

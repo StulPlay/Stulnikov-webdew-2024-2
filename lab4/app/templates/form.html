@@ -1,25 +1,46 @@
-{% macro form(user, roles, user_create_data)%}
+{% macro form(user, roles, user_create_data, filtered_errors)%}
 <form method="POST">
     <div class="mb-3">
         <label for="InputName" class="form-label">Имя</label>
-        <input type="text" name='name' class="form-control" id="InputName" value={{ user.second_name or user_create_data['first_name'] or ''}}>
+        <input type="text" name='name' class="form-control {% if filtered_errors['error_first'] %}is-invalid{% endif %}" id="InputName" value={{ user.second_name or user_create_data['first_name'] or ''}}>
+        {% if filtered_errors['error_first'] %}
+        <div class="invalid-feedback">
+            {{ filtered_errors['error_first']}}
+        </div>
+        {% endif %}
     </div>
     <div class="mb-3">
         <label for="InputLastName" class="form-label">Фамилия</label>
-        <input type="text" name='lastname' class="form-control" id="InputLastName" value={{  user.second_name or user_create_data['second_name'] or''}}>
+        <input type="text" name='lastname' class="form-control {% if filtered_errors['error_second'] %}is-invalid{% endif %}" id="InputLastName" value={{  user.second_name or user_create_data['second_name'] or''}}>
+        {% if filtered_errors['error_second'] %}
+        <div class="invalid-feedback">
+            {{ filtered_errors['error_second']}}
+        </div>
+        {% endif %}
     </div>
     <div class="mb-3">
         <label for="InputMiddleName" class="form-label">Отчество</label>
-        <input type="text" name='middlename' class="form-control" id="InputMiddleName" value={{  user.middle_name or user_create_data['middle_name'] or''}}>
+        <input type="text" name='middlename' class="form-control " id="InputMiddleName" value={{  user.middle_name or user_create_data['middle_name'] or''}}>
     </div>
     {% if request.endpoint == "create_user" %}
     <div class="mb-3">
       <label for="InputLogin" class="form-label">Логин</label>
-      <input type="login" name='login' class="form-control" id="InputLogin" aria-describedby="emailHelp" value={{  user_create_data['login'] or''}}>
+      <input type="login" name='login' class="form-control {% if filtered_errors['error_login'] %}is-invalid{% endif %}" id="InputLogin" aria-describedby="emailHelp" value={{  user_create_data['login'] or''}}>
+        {% if filtered_errors['error_login'] %}
+        <div class="invalid-feedback">
+            {{ filtered_errors['error_login']}}
+        </div>
+        {% endif %}
     </div>
     <div class="mb-3">
-      <label for="InputPassword" class="form-label">Пароль</label>
-      <input type="password" name='password'  class="form-control" id="InputPassword" value={{  user_create_data['password'] or''}}>
+        <label for="InputPassword" class="form-label">Пароль</label>
+        <input type="password" name='password'  class="form-control {% if filtered_errors['error_password'] or filtered_errors['error_password_1'] or filtered_errors['error_password_2'] or filtered_errors['error_password_3'] or filtered_errors['error_password_4'] or filtered_errors['error_password_5'] %}is-invalid{% endif %}" id="InputPassword" value={{  user_create_data['password'] or''}}>
+        {% if filtered_errors['error_password'] %}<div class="invalid-feedback">{{ filtered_errors['error_password']}}</div>{% endif %}
+        {% if filtered_errors['error_password_1'] %}<div class="invalid-feedback">{{ filtered_errors['error_password_1']}}</div>{% endif %}
+        {% if filtered_errors['error_password_2'] %}<div class="invalid-feedback">{{ filtered_errors['error_password_2']}}</div>{% endif %}
+        {% if filtered_errors['error_password_3'] %}<div class="invalid-feedback">{{ filtered_errors['error_password_3']}}</div>{% endif %}
+        {% if filtered_errors['error_password_4'] %}<div class="invalid-feedback">{{ filtered_errors['error_password_4']}}</div>{% endif %}
+        {% if filtered_errors['error_password_5'] %}<div class="invalid-feedback">{{ filtered_errors['error_password_5']}}</div>{% endif %}
     </div>
     <div class="mb-3">
         <label for="InputRole" class="form-label">Роль</label>
