@@ -54,7 +54,7 @@ def login():
         remember = request.form.get('remember')
         cursor = db.connect().cursor(named_tuple=True)
         query = ('SELECT * FROM users WHERE login=%s and password_hash=SHA2(%s,256) ')
-        cursor.execute(query,(login, password))
+        cursor.execute(query, (login, password))
         user_data = cursor.fetchone()
         if user_data:
             login_user(User(user_data.id,user_data.login),remember=remember)
@@ -118,8 +118,6 @@ def create_user():
         error_password_3 = False
         error_password_4 = False
         error_password_5 = False
-
-
 
         if not (first_name):
             error_first = 'Поле имя не может быть пустым'
@@ -243,20 +241,31 @@ def delete_user(user_id):
 @app.route('/changing_password/', methods=['GET','POST'])
 @login_required
 def changing_password():
+    filtered_errors = {}
 
     if request.method == "POST":
         old_password = request.form.get('old_password')
         new_password = request.form.get('new_password')
         password = request.form.get('password')
 
-        filtered_errors = {}
-
+        error_old_password_none = False
+        error_new_password_none = False
+        error_password_none = False
         error_password = False
         error_password_1 = False
         error_password_2 = False
         error_password_3 = False
         error_password_4 = False
         error_password_5 = False
+
+        if not (old_password):
+            error_old_password_none = 'Поле старый пароль не может быть пустым'
+
+        if not (new_password):
+            error_new_password_none = 'Поле новый пароль не может быть пустым'
+
+        if not (password):
+            error_password_none = 'Поле повтор пароля не может быть пустым'
 
         if not (new_password == password):
             error_password = 'Новые пароли должны совпадать'
@@ -278,6 +287,9 @@ def changing_password():
 
 
         errors = {
+            'error_old_password_none': error_old_password_none,
+            'error_new_password_none':  error_new_password_none,
+            'error_password_none':  error_password_none,
             'error_password': error_password,
             'error_password_1': error_password_1,
             'error_password_2': error_password_2,
@@ -305,7 +317,7 @@ def changing_password():
             db.connect().rollback()
             flash('Ошибка при смене пароля', 'danger')
 
-    return render_template('changing_password.html')
+    return render_template('changing_password.html', filtered_errors=filtered_errors)
 
 if __name__ == "__main__":
     app.run(debug=True)
