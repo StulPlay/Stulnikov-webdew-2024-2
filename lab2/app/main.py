@@ -65,26 +65,34 @@ def calc():
 
 @app.route('/check_phone', methods=['GET', 'POST'])
 def check_phone():
-    error = None
+    error_message = None
     formatted_phone = None
     if request.method == 'POST':
-        phone = request.form['phone']
+        phone_number = request.form.get('phone_number')
+
+        # Проверяем на наличия запрещенных символов
+        pars_err = False
+        allowed_chars = '0123456789()+-. '
+        for char in phone_number:
+            if char not in allowed_chars:
+                pars_err = True
+                break
+
         # Удаляем все символы, кроме цифр
-        phone_digits = ''.join(filter(str.isdigit, phone))
+        phone_digits = ''.join(filter(str.isdigit, phone_number))
+
+
         # Проверяем длину номера телефона
         if len(phone_digits) < 10 or len(phone_digits) > 11:
-            error = 'Недопустимый ввод. Неверное количество цифр.'
+            error_message = 'Недопустимый ввод. Неверное количество цифр.'
+        elif pars_err:
+            error_message = 'Недопустимый ввод. В номере телефона встречаются недопустимые символы.'
         else:
-            formatted_phone = format_phone(phone_digits)
-    return render_template('phone_form.html', error=error, formatted_phone=formatted_phone)
-
-# Функция для форматирования номера телефона
-def format_phone(phone):
-    if phone.startswith('7'):
-        phone = '8' + phone[1:]
-    formatted_phone = f'{phone[:1]}-{phone[1:4]}-{phone[4:7]}-{phone[7:9]}-{phone[9:11]}'
-    return formatted_phone
-
+            # Берем последние 10 цифр для обработки нужных цифр
+            digits = phone_digits[-10:]
+            # Преобразуем номер к формату 8-***-***-**-**
+            formatted_phone = '8-{}-{}-{}-{}'.format(digits[:3], digits[3:6], digits[6:8], digits[8:])
+    return render_template('phone_form.html', error_message=error_message, formatted_phone=formatted_phone)
 
 if __name__ == "__main__":
     app.run(debug=True)
