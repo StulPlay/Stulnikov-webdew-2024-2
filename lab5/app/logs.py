@@ -24,7 +24,7 @@ def show_user_logs():
             query = 'SELECT logs.*, users.first_name, users.second_name, users.middle_name FROM logs LEFT JOIN users ON logs.user_id = users.id ORDER BY created_at DESC LIMIT %s OFFSET %s '
             cursor.execute(query, (PER_PAGE, (page - 1) * PER_PAGE))
         else:
-            query = f'SELECT * FROM logs WHERE user_id = {int(current_user.id)} LIMIT %s OFFSET %s'
+            query = f'SELECT logs.*, users.first_name, users.second_name, users.middle_name FROM logs LEFT JOIN users ON logs.user_id = users.id WHERE user_id = {int(current_user.id)} ORDER BY created_at DESC LIMIT %s OFFSET %s'
             cursor.execute(query, (PER_PAGE, (page - 1) * PER_PAGE))
         logs = cursor.fetchall()
 
@@ -86,7 +86,7 @@ def export_csv_visits():
             cursor.execute(query)
             logs = cursor.fetchall()
         else:
-            query = (f'SELECT * FROM logs WHERE user_id = {int(current_user.id)}')
+            query = (f'SELECT logs.*, users.first_name, users.second_name, users.middle_name FROM logs LEFT JOIN users ON logs.user_id = users.id WHERE user_id = {int(current_user.id)} ORDER BY created_at DESC')
             cursor.execute(query)
             logs = cursor.fetchall()
 
