@@ -21,12 +21,20 @@ def show_user_logs():
 
     with db.connect().cursor(named_tuple=True) as cursor:
         if (current_user.can('prev_logs', current_user) == True):
-            query = 'SELECT * FROM logs LIMIT %s OFFSET %s'
+            query = 'SELECT logs.*, users.first_name, users.second_name, users.middle_name FROM logs LEFT JOIN users ON logs.user_id = users.id ORDER BY created_at DESC LIMIT %s OFFSET %s '
             cursor.execute(query, (PER_PAGE, (page - 1) * PER_PAGE))
         else:
             query = f'SELECT * FROM logs WHERE user_id = {int(current_user.id)} LIMIT %s OFFSET %s'
             cursor.execute(query, (PER_PAGE, (page - 1) * PER_PAGE))
         logs = cursor.fetchall()
+
+    processed_logs = []
+    for log in logs:
+        if log.user_id == None:
+            processed_logs.append(log._replace(user_id="Неаутентифицированный пользователь"))
+        else:
+            fio = f"{log.second_name} {log.first_name} {log.middle_name}"
+            processed_logs.append(log._replace(user_id=fio))
 
     with db.connect().cursor(named_tuple=True) as cursor:
         if (current_user.can('prev_logs', current_user) == True):
@@ -37,7 +45,7 @@ def show_user_logs():
             cursor.execute(query)
         count = cursor.fetchone().count
 
-    return render_template("log/visits.html", logs=logs, count=ceil(count/PER_PAGE), page=page)
+    return render_template("log/visits.html", logs=processed_logs, count=ceil(count/PER_PAGE), page=page)
 
 @bp.route("/users")
 @checkRole('prev_logs')
@@ -45,18 +53,26 @@ def show_user_logs():
 def show_count_logs():
     logs=None
     with db.connect().cursor(named_tuple=True) as cursor:
-        query = ('SELECT user_id,count(*) as count FROM logs group by user_id ')
+        query = ('SELECT user_id, users.first_name, users.second_name, users.middle_name, count(*) as count FROM logs LEFT JOIN users ON logs.user_id = users.id  group by user_id ORDER BY count DESC')
         cursor.execute(query)
         logs=cursor.fetchall()
-    return render_template("log/users.html", logs=logs)
 
+    processed_logs = []
+    for log in logs:
+        if log.user_id == None:
+            processed_logs.append(log._replace(user_id="Неаутентифицированный пользователь"))
+        else:
+            fio = f"{log.second_name} {log.first_name} {log.middle_name}"
+            processed_logs.append(log._replace(user_id=fio))
+
+    return render_template("log/users.html", logs=processed_logs)
 @bp.route("/page")
 @checkRole('prev_logs')
 @login_required
 def show_page_logs():
     logs=None
     with db.connect().cursor(named_tuple=True) as cursor:
-        query = ('SELECT path,count(*) as count FROM logs group by path ')
+        query = ('SELECT path,count(*) as count FROM logs group by path ORDER BY count DESC')
         cursor.execute(query)
         logs=cursor.fetchall()
     return render_template("log/page.html", logs=logs)
@@ -66,14 +82,24 @@ def show_page_logs():
 def export_csv_visits():
     with db.connect().cursor(named_tuple=True) as cursor:
         if (current_user.can('prev_logs', current_user) == True):
-            query = ('SELECT * FROM logs')
+            query = ('SELECT logs.*, users.first_name, users.second_name, users.middle_name FROM logs LEFT JOIN users ON logs.user_id = users.id ORDER BY created_at DESC')
             cursor.execute(query)
             logs = cursor.fetchall()
         else:
             query = (f'SELECT * FROM logs WHERE user_id = {int(current_user.id)}')
             cursor.execute(query)
             logs = cursor.fetchall()
-    data = load_data(logs, ['user_id', 'path', 'created_at'])
+
+    processed_logs = []
+    for log in logs:
+        if log.user_id == None:
+            processed_logs.append(log._replace(user_id="Неаутентифицированный пользователь"))
+        else:
+            fio = f"{log.second_name} {log.first_name} {log.middle_name}"
+            processed_logs.append(log._replace(user_id=fio))
+
+    data = load_data(processed_logs, ['user_id', 'path', 'created_at'])
+
     return send_file(data, as_attachment=True, download_name='download.csv')
 
 
@@ -81,20 +107,28 @@ def export_csv_visits():
 @login_required
 def export_csv_users():
     with db.connect().cursor(named_tuple=True) as cursor:
-        query = ('SELECT user_id, COUNT(*) as count FROM logs GROUP BY user_id')
+        query = ('SELECT user_id, users.first_name, users.second_name, users.middle_name, count(*) as count FROM logs LEFT JOIN users ON logs.user_id = users.id  group by user_id ORDER BY count DESC')
         cursor.execute(query)
         logs = cursor.fetchall()
-    data = load_data(logs, ['user_id', 'count'])
+
+    processed_logs = []
+    for log in logs:
+        if log.user_id == None:
+            processed_logs.append(log._replace(user_id="Неаутентифицированный пользователь"))
+        else:
+            fio = f"{log.second_name} {log.first_name} {log.middle_name}"
+            processed_logs.append(log._replace(user_id=fio))
+
+    data = load_data(processed_logs, ['user_id', 'count'])
     return send_file(data, as_attachment=True, download_name='download.csv')
 
 @bp.route("/export_csv_page")
 @login_required
 def export_csv_page():
     with db.connect().cursor(named_tuple=True) as cursor:
-        query = ('SELECT path, COUNT(*) as count FROM logs GROUP BY path')
+        query = ('SELECT path, COUNT(*) as count FROM logs GROUP BY path ORDER BY count DESC')
         cursor.execute(query)
         logs = cursor.fetchall()
-
     data = load_data(logs, ['path', 'count'])
     return send_file(data, as_attachment=True, download_name='download.csv')
 
